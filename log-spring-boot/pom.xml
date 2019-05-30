@@ -7,7 +7,7 @@
     <version>1.0.0</version>
     <name>log-spring-boot</name>
     <description>Demo project for Spring Boot Annotation</description>
-    <url>https://github.com/zhzhair/aop-spring-boot.git</url>
+    <url>https://github.com/zhzhair/logaop-spring-boot.git</url>
 
     <developers>
         <developer>
