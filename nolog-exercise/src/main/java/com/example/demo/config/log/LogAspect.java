@@ -1,5 +1,6 @@
 package com.example.demo.config.log;
 
+import com.example.demo.config.annotation.LogForTask;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -8,11 +9,14 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StopWatch;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
+import java.lang.reflect.Method;
+import java.text.SimpleDateFormat;
 
 @Component
 @Aspect
@@ -20,6 +24,11 @@ public class LogAspect {
 
     @Pointcut(value = "execution(* com.example.demo.*.controller.*.*(..))")
     public void logPointCut() {
+
+    }
+
+    @Pointcut(value = "execution(* com.example.demo.*.task.*.*(..))")
+    public void logPointCutForTask() {
 
     }
 
@@ -66,4 +75,29 @@ public class LogAspect {
         return proceed;
     }
 
+    /**
+     * 记录定时任务日志环绕通知
+     */
+    @Around(value = "logPointCutForTask() && @annotation(logForTask)", argNames = "pjp,logForTask")
+    public Object autoLogForTaskRecord(ProceedingJoinPoint pjp, LogForTask logForTask) throws Throwable {
+        MethodSignature signature = (MethodSignature) pjp.getSignature();
+//        获取方法名
+        Method method = signature.getMethod();
+        String name = method.getName();
+//        切入的类
+        Class declaringType = signature.getDeclaringType();
+//        日志对象
+        Logger logger = LoggerFactory.getLogger(declaringType);
+        LogForTask logForTask1 = method.getDeclaredAnnotation(LogForTask.class);
+        StopWatch sw = new StopWatch();
+        sw.start(name);
+        Object proceed = pjp.proceed();
+        sw.stop();
+        long time = sw.getTotalTimeMillis();
+        if(time > logForTask1.milliseconds()){
+            logger.info("定时任务---"+logForTask1.description()+"--执行时间:" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(System.currentTimeMillis()));
+            logger.info("定时任务---方法名: "+name+"---结束---->，耗时:{}秒",time/1000);
+        }
+        return proceed;
+    }
 }
